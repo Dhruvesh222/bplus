@@ -1,0 +1,190 @@
+#include<bits/stdc++.h>
+using namespace std;
+int d,t;
+int index_nodes=0,data_nodes = 0;
+struct node
+{
+    bool leaf;
+    node* parent;
+    vector<int> data;
+    vector<node*> children;
+
+    explicit node(bool is_leaf){
+        if(!is_leaf){
+            // data.resize(2*t+1,1e9);
+            // children.resize(2*t+2,nullptr);
+        }else{
+
+        }
+    }
+};
+void insert_into_indexnode(node* & root,node*& original,node*& original_sibling,int separator){
+    node* parentnode = original->parent;
+    bool flag = false;
+    while(parentnode!=nullptr){
+        int i;
+        for(i=0;i<2*t+1;i++){
+            if(parentnode->children[i]==original){
+                break;
+            }
+        }
+        // cout<<"i is "<<i<<endl;
+        // cout<<"separator is "<<separator<<endl;
+        if(i==0){
+            reverse(parentnode->data.begin(),parentnode->data.end());
+            parentnode->data.push_back(separator);
+            reverse(parentnode->data.begin(),parentnode->data.end());
+            reverse(parentnode->children.begin(),parentnode->children.end());
+            parentnode->children.pop_back();
+            parentnode->children.push_back(original_sibling);
+            parentnode->children.push_back(original);
+            reverse(parentnode->children.begin(),parentnode->children.end());
+        }else{
+            // for(it=parent->children.begin();it!=parent->children.end();it++){
+            //     if(it==original){
+            //         break;
+            //     }
+            // }
+            // parent->children.insert(it+1,original_sibling);
+
+            vector<node*>:: iterator it = parentnode->children.begin();
+            vector<int>:: iterator d_it = parentnode->data.begin();
+            parentnode->children.insert(it+i+1,original_sibling);
+            parentnode->data.insert(d_it+i,separator);
+        }
+        
+        // cout<<"fine till here\n";
+        if(parentnode->data.size()<=2*t+1){
+            flag = true;
+            break;
+        }else{
+            node* parent_sibling = new node(false);
+            index_nodes++;
+            parent_sibling->parent = parentnode->parent;
+            parent_sibling->leaf = false;
+            deque<int> q;
+            while(parentnode->data.size()>t+1){
+                q.push_back(parentnode->data.back());
+                parentnode->data.pop_back();
+            }
+            separator = parentnode->data.back();
+            parentnode->data.pop_back();
+            while(!q.empty()){
+                parent_sibling->data.push_back(q.back());
+                q.pop_back();
+            }
+
+            deque<node*> q1;
+            while(parentnode->children.size()>t+1){
+                q1.push_back(parentnode->children.back());
+                parentnode->children.pop_back();
+            }
+            while(!q1.empty()){
+                parent_sibling->children.push_back(q1.back());
+                q1.pop_back();
+            }
+            original = parentnode;
+            original_sibling = parent_sibling;
+            parentnode = original->parent;
+        }
+    }
+    if(!flag){
+        node* newroot = new node(false);
+        newroot->parent=nullptr;
+        newroot->leaf = false;
+        index_nodes++;
+        newroot->data.push_back(separator);
+        newroot->children.push_back(original);
+        newroot->children.push_back(original_sibling);
+        original->parent = newroot;
+        original_sibling->parent = newroot;
+        root = newroot;
+    }
+}
+void insert(node* &root,int val){
+    node* leafnode = root;
+    while(leafnode->leaf==false){
+        if(val<leafnode->data[0]){
+            leafnode = leafnode->children[0];
+        }else if(val>=leafnode->data.back()){
+            leafnode = leafnode->children.back();
+        }else{
+            for(int i=0;i<2*t;i++){
+                if(val>=leafnode->data[i] && val<leafnode->data[i+1]){
+                    leafnode = leafnode->children[i+1];
+                }
+            }
+        }
+    }
+    if(leafnode->data.size()==0){
+        leafnode->data.push_back(val);
+        return ;
+    }
+    if(val>=leafnode->data.back()){
+        leafnode->data.push_back(val);
+    }else{
+        deque<int> q;
+        while(leafnode->data.size()>0 && leafnode->data.back()>val){
+            q.push_back(leafnode->data.back());
+            leafnode->data.pop_back();
+        }
+        leafnode->data.push_back(val);
+        while(!q.empty()){
+            leafnode->data.push_back(q.back());
+            q.pop_back();
+        }
+    }
+    if(leafnode->data.size()<=2*d){
+        // kuchh nhi karna 
+    }else{
+        node* leafnode_sibling = new node(true);
+        data_nodes++;
+        leafnode_sibling->parent = leafnode->parent;
+        leafnode_sibling->leaf = true;
+        deque<int> q;
+        while(leafnode->data.size()>d){
+            q.push_back(leafnode->data.back());
+            leafnode->data.pop_back();
+        }
+        while(!q.empty()){
+            leafnode_sibling->data.push_back(q.back());
+            q.pop_back();
+        }
+        int separator = leafnode_sibling->data[0];
+        insert_into_indexnode(root,leafnode,leafnode_sibling,separator);
+    }
+}
+int main(){
+//    #ifndef ONLINE_JUDGE
+//        freopen("input.txt", "r", stdin);
+//        freopen("output.txt", "w", stdout);
+//    #endif
+    cin>>d>>t;
+    int choice;
+    // node* root = new root(true);
+    node* root = nullptr;
+    cin>>choice;
+    while(choice!=3){
+        if(choice==1){
+            int val;
+            cin>>val;
+            if(root==nullptr){
+                root = new node(true);
+                root->parent = nullptr;
+                root->leaf = true;
+                data_nodes++;
+            }
+            insert(root,val);
+        }else if(choice==2){
+            cout<<index_nodes<<" "<<data_nodes<<" ";
+            if(root!=nullptr){
+                for(int i=0;i<root->data.size();i++){
+                    cout<<root->data[i]<<" ";
+                }
+            }
+            cout<<endl;
+        }
+        cin>>choice;
+    }
+    return 0;
+}
